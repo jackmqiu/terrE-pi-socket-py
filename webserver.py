@@ -83,22 +83,27 @@ def disconnect():
 
 @sio.on('forward')
 def on_forward():
+  print("forward")
   start_movement('forward')
 
 @sio.on('backward')
 def on_backward():
+  print("backward")
   start_movement('backward')
 
 @sio.on('left')
 def on_left():
+  print("left")
   start_movement('left')
 
 @sio.on('right')
 def on_right():
+  print("right")
   start_movement('right')
 
 @sio.on('stop')
 def on_stop():
+  print("stop")
   stop_movement()
 
 if __name__ == '__main__':
