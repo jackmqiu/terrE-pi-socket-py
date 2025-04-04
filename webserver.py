@@ -14,7 +14,9 @@ sio = socketio.Client(
   reconnection_delay_max=5
 )
 
-i2c = busio.I2C(board.SCL, board.SDA)
+print(board.SCL)
+
+# i2c = busio.I2C(board.SCL, board.SDA)
 hat = adafruit_pca9685.PCA9685(i2c)
 kit = ServoKit(channels=16)
 
