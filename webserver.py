@@ -75,7 +75,7 @@ def stop_movement():
 @sio.event
 def connect():
   print("connected to socket server")
-  sio.emit('initializeDevice', {'deviceType': 'sword', 'swordName': 'yellow'})
+  sio.emit('initializeDevice', {'deviceType': 'terrE', 'unit': '0.1'})
 
 @sio.event
 def disconnect():
