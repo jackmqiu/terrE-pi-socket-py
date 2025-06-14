@@ -109,7 +109,12 @@ def on_stop():
 # Diagnostic handlers for individual servos
 @sio.on('0')
 def on_servo_0():
+    global movement, movement_thread
     print("diagnostic: servo 0 throttle 1, others 0")
+    movement = False
+    if movement_thread:
+        movement_thread.join()
+        movement_thread = None
     kit.continuous_servo[0].throttle = 1
     kit.continuous_servo[1].throttle = 0
     kit.continuous_servo[2].throttle = 0
@@ -117,7 +122,12 @@ def on_servo_0():
 
 @sio.on('1')
 def on_servo_1():
+    global movement, movement_thread
     print("diagnostic: servo 1 throttle 1, others 0")
+    movement = False
+    if movement_thread:
+        movement_thread.join()
+        movement_thread = None
     kit.continuous_servo[0].throttle = 0
     kit.continuous_servo[1].throttle = 1
     kit.continuous_servo[2].throttle = 0
@@ -125,7 +135,12 @@ def on_servo_1():
 
 @sio.on('2')
 def on_servo_2():
+    global movement, movement_thread
     print("diagnostic: servo 2 throttle 1, others 0")
+    movement = False
+    if movement_thread:
+        movement_thread.join()
+        movement_thread = None
     kit.continuous_servo[0].throttle = 0
     kit.continuous_servo[1].throttle = 0
     kit.continuous_servo[2].throttle = 1
@@ -133,7 +148,12 @@ def on_servo_2():
 
 @sio.on('3')
 def on_servo_3():
+    global movement, movement_thread
     print("diagnostic: servo 3 throttle 1, others 0")
+    movement = False
+    if movement_thread:
+        movement_thread.join()
+        movement_thread = None
     kit.continuous_servo[0].throttle = 0
     kit.continuous_servo[1].throttle = 0
     kit.continuous_servo[2].throttle = 0
