@@ -110,54 +110,63 @@ def on_stop():
 @sio.on('0')
 def on_servo_0():
     global movement, movement_thread
-    print("diagnostic: servo 0 throttle 1, others 0")
+    print("diagnostic: servo 0 throttle 1 for 1s, others 0")
     movement = False
     if movement_thread:
         movement_thread.join()
         movement_thread = None
+    # Set all to 0
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
     kit.continuous_servo[0].throttle = 1
-    kit.continuous_servo[1].throttle = 0
-    kit.continuous_servo[2].throttle = 0
-    kit.continuous_servo[3].throttle = 0
+    time.sleep(1)
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
 
 @sio.on('1')
 def on_servo_1():
     global movement, movement_thread
-    print("diagnostic: servo 1 throttle 1, others 0")
+    print("diagnostic: servo 1 throttle 1 for 1s, others 0")
     movement = False
     if movement_thread:
         movement_thread.join()
         movement_thread = None
-    kit.continuous_servo[0].throttle = 0
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
     kit.continuous_servo[1].throttle = 1
-    kit.continuous_servo[2].throttle = 0
-    kit.continuous_servo[3].throttle = 0
+    time.sleep(1)
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
 
 @sio.on('2')
 def on_servo_2():
     global movement, movement_thread
-    print("diagnostic: servo 2 throttle 1, others 0")
+    print("diagnostic: servo 2 throttle 1 for 1s, others 0")
     movement = False
     if movement_thread:
         movement_thread.join()
         movement_thread = None
-    kit.continuous_servo[0].throttle = 0
-    kit.continuous_servo[1].throttle = 0
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
     kit.continuous_servo[2].throttle = 1
-    kit.continuous_servo[3].throttle = 0
+    time.sleep(1)
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
 
 @sio.on('3')
 def on_servo_3():
     global movement, movement_thread
-    print("diagnostic: servo 3 throttle 1, others 0")
+    print("diagnostic: servo 3 throttle 1 for 1s, others 0")
     movement = False
     if movement_thread:
         movement_thread.join()
         movement_thread = None
-    kit.continuous_servo[0].throttle = 0
-    kit.continuous_servo[1].throttle = 0
-    kit.continuous_servo[2].throttle = 0
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
     kit.continuous_servo[3].throttle = 1
+    time.sleep(1)
+    for i in range(4):
+        kit.continuous_servo[i].throttle = 0
 
 if __name__ == '__main__':
   try:
