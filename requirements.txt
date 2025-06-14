@@ -1,4 +1,6 @@
 python-socketio==5.10.0
 adafruit_pca9685
 adafruit-circuitpython-servokit
+requests
+adafruit-blinka
 board
