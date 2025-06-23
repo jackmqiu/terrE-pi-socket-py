@@ -26,26 +26,26 @@ def move_loop():
   global movement, current_direction
   while movement:
     if current_direction == 'forward':
-      kit.continuous_servo[0].throttle = 1
-      kit.continuous_servo[1].throttle = 1
+      kit.continuous_servo[0].throttle = -1  # reversed
+      kit.continuous_servo[1].throttle = -1  # reversed
       kit.continuous_servo[2].throttle = 1
       kit.continuous_servo[3].throttle = 1
 
     elif current_direction == 'backward':
-      kit.continuous_servo[0].throttle = -1
-      kit.continuous_servo[1].throttle = -1
+      kit.continuous_servo[0].throttle = 1  # reversed
+      kit.continuous_servo[1].throttle = 1  # reversed
       kit.continuous_servo[2].throttle = -1
       kit.continuous_servo[3].throttle = -1
 
     elif current_direction == 'left':
-      kit.continuous_servo[0].throttle = 0.5
-      kit.continuous_servo[1].throttle = 1
+      kit.continuous_servo[0].throttle = -0.5  # reversed
+      kit.continuous_servo[1].throttle = -1   # reversed
       kit.continuous_servo[2].throttle = 0.5
       kit.continuous_servo[3].throttle = 1
 
     elif current_direction == 'right':
-      kit.continuous_servo[0].throttle = 1
-      kit.continuous_servo[1].throttle = 0.5
+      kit.continuous_servo[0].throttle = -1   # reversed
+      kit.continuous_servo[1].throttle = -0.5 # reversed
       kit.continuous_servo[2].throttle = 1
       kit.continuous_servo[3].throttle = 0.5
 
@@ -85,11 +85,13 @@ def disconnect():
 def on_forward():
   print("forward")
   start_movement('forward')
+  threading.Timer(0.6, stop_movement).start()
 
 @sio.on('backward')
 def on_backward():
   print("backward")
   start_movement('backward')
+  threading.Timer(0.6, stop_movement).start()
 
 @sio.on('left')
 def on_left():
