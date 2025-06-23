@@ -127,9 +127,9 @@ def on_stop():
 
 # Diagnostic handlers for individual servos
 @sio.on('0')
-def on_servo_0():
+def on_servo_0(value):
     global movement, movement_thread
-    print("diagnostic: servo 0 throttle 1 for 1s, others 0")
+    print(f"servo 0 throttle {value}")
     movement = False
     if movement_thread:
         movement_thread.join()
@@ -137,52 +137,52 @@ def on_servo_0():
     # Set all to 0
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[0].throttle = .5
+    kit.continuous_servo[0].throttle = value
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
 
 @sio.on('1')
-def on_servo_1():
+def on_servo_1(value):
     global movement, movement_thread
-    print("diagnostic: servo 1 throttle 1 for 1s, others 0")
+    print(f"servo 1 throttle {value}")
     movement = False
     if movement_thread:
         movement_thread.join()
         movement_thread = None
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[1].throttle = .5
+    kit.continuous_servo[1].throttle = value
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
 
 @sio.on('2')
-def on_servo_2():
+def on_servo_2(value):
     global movement, movement_thread
-    print("diagnostic: servo 2 throttle 1 for 1s, others 0")
+    print(f"servo 2 throttle {value}")
     movement = False
     if movement_thread:
         movement_thread.join()
         movement_thread = None
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[2].throttle = .5
+    kit.continuous_servo[2].throttle = value
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
 
 @sio.on('3')
-def on_servo_3():
+def on_servo_3(value):
     global movement, movement_thread
-    print("diagnostic: servo 3 throttle 1 for 1s, others 0")
+    print(f"servo 3 throttle {value}")
     movement = False
     if movement_thread:
         movement_thread.join()
         movement_thread = None
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[3].throttle = .5
+    kit.continuous_servo[3].throttle = value
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
