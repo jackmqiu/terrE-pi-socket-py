@@ -122,7 +122,7 @@ def on_servo_0():
     # Set all to 0
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[0].throttle = 1
+    kit.continuous_servo[0].throttle = .5
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
@@ -137,7 +137,7 @@ def on_servo_1():
         movement_thread = None
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[1].throttle = 1
+    kit.continuous_servo[1].throttle = .5
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
@@ -152,7 +152,7 @@ def on_servo_2():
         movement_thread = None
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[2].throttle = 1
+    kit.continuous_servo[2].throttle = .5
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
@@ -167,7 +167,7 @@ def on_servo_3():
         movement_thread = None
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[3].throttle = 1
+    kit.continuous_servo[3].throttle = .5
     time.sleep(1)
     for i in range(4):
         kit.continuous_servo[i].throttle = 0
