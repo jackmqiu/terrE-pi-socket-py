@@ -21,11 +21,18 @@ kit = ServoKit(channels=16)
 movement = False
 movement_thread = None
 current_direction = None
+wheel_thresholds = [0, 0, 0, 0]
 
 def move_loop():
-  global movement, current_direction
+  global movement, current_direction, wheel_thresholds
   while movement:
-    if current_direction == 'forward':
+    if current_direction == 'move' and wheel_thresholds:
+      # Apply the thresholds directly, with wheel 0 and 1 reversed
+      kit.continuous_servo[0].throttle = -wheel_thresholds[0]  # reversed
+      kit.continuous_servo[1].throttle = -wheel_thresholds[1]  # reversed
+      kit.continuous_servo[2].throttle = wheel_thresholds[2]
+      kit.continuous_servo[3].throttle = wheel_thresholds[3]
+    elif current_direction == 'forward':
       kit.continuous_servo[0].throttle = -1  # reversed
       kit.continuous_servo[1].throttle = -1  # reversed
       kit.continuous_servo[2].throttle = 1
@@ -51,8 +58,10 @@ def move_loop():
 
     time.sleep(0.01)
 
-def start_movement(direction):
-  global movement, movement_thread, current_direction
+def start_movement(direction, thresholds=None):
+  global movement, movement_thread, current_direction, wheel_thresholds
+  if thresholds:
+    wheel_thresholds = thresholds
   if not movement:
     movement = True
     current_direction = direction
@@ -103,6 +112,12 @@ def on_left():
 def on_right():
   print("right")
   start_movement('right')
+  threading.Timer(0.6, stop_movement).start()
+
+@sio.on('move')
+def on_move(thresholds):
+  print(f"move with thresholds: {thresholds}")
+  start_movement('move', thresholds)
   threading.Timer(0.6, stop_movement).start()
 
 @sio.on('stop')
