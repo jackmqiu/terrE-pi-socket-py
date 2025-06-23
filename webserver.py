@@ -27,34 +27,11 @@ def move_loop():
   global movement, current_direction, wheel_thresholds
   while movement:
     if current_direction == 'move' and wheel_thresholds:
-      # Apply the thresholds directly, with wheel 0 and 1 reversed
-      kit.continuous_servo[0].throttle = -wheel_thresholds[0]  # reversed
-      kit.continuous_servo[1].throttle = -wheel_thresholds[1]  # reversed
+      # Apply the thresholds directly
+      kit.continuous_servo[0].throttle = wheel_thresholds[0]
+      kit.continuous_servo[1].throttle = wheel_thresholds[1]
       kit.continuous_servo[2].throttle = wheel_thresholds[2]
       kit.continuous_servo[3].throttle = wheel_thresholds[3]
-    elif current_direction == 'forward':
-      kit.continuous_servo[0].throttle = -1  # reversed
-      kit.continuous_servo[1].throttle = -1  # reversed
-      kit.continuous_servo[2].throttle = 1
-      kit.continuous_servo[3].throttle = 1
-
-    elif current_direction == 'backward':
-      kit.continuous_servo[0].throttle = 1  # reversed
-      kit.continuous_servo[1].throttle = 1  # reversed
-      kit.continuous_servo[2].throttle = -1
-      kit.continuous_servo[3].throttle = -1
-
-    elif current_direction == 'left':
-      kit.continuous_servo[0].throttle = -0.5  # reversed
-      kit.continuous_servo[1].throttle = -1   # reversed
-      kit.continuous_servo[2].throttle = 0.5
-      kit.continuous_servo[3].throttle = 1
-
-    elif current_direction == 'right':
-      kit.continuous_servo[0].throttle = -1   # reversed
-      kit.continuous_servo[1].throttle = -0.5 # reversed
-      kit.continuous_servo[2].throttle = 1
-      kit.continuous_servo[3].throttle = 0.5
 
     time.sleep(0.01)
 
