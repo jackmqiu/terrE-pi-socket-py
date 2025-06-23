@@ -97,11 +97,13 @@ def on_backward():
 def on_left():
   print("left")
   start_movement('left')
+  threading.Timer(0.6, stop_movement).start()
 
 @sio.on('right')
 def on_right():
   print("right")
   start_movement('right')
+  threading.Timer(0.6, stop_movement).start()
 
 @sio.on('stop')
 def on_stop():
