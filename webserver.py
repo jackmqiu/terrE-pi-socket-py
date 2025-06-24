@@ -73,6 +73,14 @@ def on_move(thresholds):
   start_movement('move', thresholds)
   threading.Timer(0.6, stop_movement).start()
 
+@sio.on('lift')
+def on_lift(angle):
+  print(f"lift servo to angle: {angle}")
+  # Standard servos use angle values from 0 to 180 degrees
+  # Ensure angle is within valid range
+  angle = max(0, min(180, angle))
+  kit.servo[4].angle = angle
+
 @sio.on('stop')
 def on_stop():
   print("stop")
