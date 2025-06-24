@@ -67,30 +67,6 @@ def connect():
 def disconnect():
   print("disconnected from server")
 
-@sio.on('forward')
-def on_forward():
-  print("forward")
-  start_movement('forward')
-  threading.Timer(0.6, stop_movement).start()
-
-@sio.on('backward')
-def on_backward():
-  print("backward")
-  start_movement('backward')
-  threading.Timer(0.6, stop_movement).start()
-
-@sio.on('left')
-def on_left():
-  print("left")
-  start_movement('left')
-  threading.Timer(0.6, stop_movement).start()
-
-@sio.on('right')
-def on_right():
-  print("right")
-  start_movement('right')
-  threading.Timer(0.6, stop_movement).start()
-
 @sio.on('move')
 def on_move(thresholds):
   print(f"move with thresholds: {thresholds}")
