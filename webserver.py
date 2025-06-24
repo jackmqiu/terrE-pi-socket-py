@@ -22,6 +22,7 @@ movement = False
 movement_thread = None
 current_direction = None
 wheel_thresholds = [0, 0, 0, 0]
+stop_timer = None
 
 def move_loop():
   global movement, current_direction, wheel_thresholds
@@ -48,7 +49,7 @@ def start_movement(direction, thresholds=None):
     current_direction = direction  # Switch direction while moving
 
 def stop_movement():
-  global movement, movement_thread
+  global movement, movement_thread, stop_timer
   movement = False
   kit.continuous_servo[0].throttle = 0
   kit.continuous_servo[1].throttle = 0
@@ -57,6 +58,9 @@ def stop_movement():
   if movement_thread:
     movement_thread.join()
     movement_thread = None
+  
+  # Clear the timer reference
+  stop_timer = None
 
 @sio.event
 def connect():
@@ -69,9 +73,17 @@ def disconnect():
 
 @sio.on('move')
 def on_move(thresholds):
+  global stop_timer
   print(f"move with thresholds: {thresholds}")
   start_movement('move', thresholds)
-  threading.Timer(0.6, stop_movement).start()
+  
+  # Cancel any existing timer to prevent jerky movement
+  if stop_timer:
+    stop_timer.cancel()
+  
+  # Create a new timer
+  stop_timer = threading.Timer(0.6, stop_movement)
+  stop_timer.start()
 
 @sio.on('lift')
 def on_lift(angle):
