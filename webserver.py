@@ -16,7 +16,18 @@ sio = socketio.Client(
 
 i2c = board.I2C()
 hat = adafruit_pca9685.PCA9685(i2c)
+
+# Set the PWM frequency to 50Hz (standard for most servos)
+hat.frequency = 50
+
 kit = ServoKit(channels=16)
+
+# Initialize all continuous servos to stop position (throttle=0)
+for i in range(4):
+    kit.continuous_servo[i].throttle = 0
+
+# Initialize standard servo to neutral position
+kit.servo[4].angle = 90
 
 movement = False
 movement_thread = None
