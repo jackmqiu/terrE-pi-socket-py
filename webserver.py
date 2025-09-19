@@ -5,8 +5,6 @@ import socketio
 import threading
 import time
 
-from adafruit_servokit import ServoKit
-
 sio = socketio.Client(
   reconnection=True,
   reconnection_attempts=5,
@@ -14,20 +12,38 @@ sio = socketio.Client(
   reconnection_delay_max=5
 )
 
-i2c = board.I2C()
-hat = adafruit_pca9685.PCA9685(i2c)
+# Initialize I2C bus
+i2c = busio.I2C(board.SCL, board.SDA)
 
-# Set the PWM frequency to 50Hz (standard for most servos)
-hat.frequency = 50
+# Initialize PCA9685
+pca = adafruit_pca9685.PCA9685(i2c)
 
-kit = ServoKit(channels=16)
+# Set PWM frequency to 50Hz (standard for servos)
+pca.frequency = 50
 
-# Initialize all continuous servos to stop position (throttle=0)
-for i in range(4):
-    kit.continuous_servo[i].throttle = 0
+# Constants for servo control
+SERVO_MIN_PULSE = 1000  # Min pulse length in microseconds
+SERVO_MAX_PULSE = 2000  # Max pulse length in microseconds
+SERVO_NEUTRAL = 1500    # Neutral position (1.5ms)
 
-# Initialize standard servo to neutral position
-kit.servo[4].angle = 90
+# Function to convert pulse width in microseconds to 16-bit value
+def pulse_to_bits(pulse_us):
+    pulse_us = max(SERVO_MIN_PULSE, min(SERVO_MAX_PULSE, pulse_us))
+    return int((pulse_us / 1000000 * 50 * 65535))
+
+# Function to convert throttle (-1 to 1) to pulse width
+def throttle_to_pulse(throttle):
+    throttle = max(-1.0, min(1.0, throttle))  # Clamp between -1 and 1
+    return int(SERVO_NEUTRAL + throttle * (SERVO_MAX_PULSE - SERVO_NEUTRAL))
+
+# Function to convert angle (0-180) to pulse width
+def angle_to_pulse(angle):
+    angle = max(0, min(180, angle))  # Clamp between 0 and 180
+    return int(SERVO_MIN_PULSE + (angle / 180) * (SERVO_MAX_PULSE - SERVO_MIN_PULSE))
+
+# Initialize all servo channels to neutral/stop position
+for i in range(16):
+    pca.channels[i].duty_cycle = 0
 
 movement = False
 movement_thread = None
@@ -39,11 +55,13 @@ def move_loop():
   global movement, current_direction, wheel_thresholds
   while movement:
     if current_direction == 'move' and wheel_thresholds:
-      # Apply the thresholds directly
-      kit.continuous_servo[0].throttle = wheel_thresholds[0]
-      kit.continuous_servo[1].throttle = wheel_thresholds[1]
-      kit.continuous_servo[2].throttle = wheel_thresholds[2]
-      kit.continuous_servo[3].throttle = wheel_thresholds[3]
+      # Apply the thresholds directly to the PCA9685 channels
+      for i in range(4):
+        if wheel_thresholds[i] == 0:
+          pca.channels[i].duty_cycle = 0
+        else:
+          pulse = throttle_to_pulse(wheel_thresholds[i])
+          pca.channels[i].duty_cycle = pulse_to_bits(pulse)
 
     time.sleep(0.01)
 
@@ -62,10 +80,9 @@ def start_movement(direction, thresholds=None):
 def stop_movement():
   global movement, movement_thread, stop_timer
   movement = False
-  kit.continuous_servo[0].throttle = 0
-  kit.continuous_servo[1].throttle = 0
-  kit.continuous_servo[2].throttle = 0
-  kit.continuous_servo[3].throttle = 0
+  # Stop all continuous servo channels
+  for i in range(4):
+    pca.channels[i].duty_cycle = 0
   if movement_thread:
     movement_thread.join()
     movement_thread = None
@@ -102,7 +119,8 @@ def on_lift(angle):
   # Standard servos use angle values from 0 to 180 degrees
   # Ensure angle is within valid range
   angle = max(0, min(180, angle))
-  kit.servo[4].angle = angle
+  pulse = angle_to_pulse(angle)
+  pca.channels[4].duty_cycle = pulse_to_bits(pulse)
 
 @sio.on('stop')
 def on_stop():
@@ -120,11 +138,15 @@ def on_servo_0(value):
         movement_thread = None
     # Set all to 0
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[0].throttle = value
+        pca.channels[i].duty_cycle = 0
+    if value == 0:
+        pca.channels[0].duty_cycle = 0
+    else:
+        pulse = throttle_to_pulse(value)
+        pca.channels[0].duty_cycle = pulse_to_bits(pulse)
     time.sleep(1)
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
+        pca.channels[i].duty_cycle = 0
 
 @sio.on('1')
 def on_servo_1(value):
@@ -135,11 +157,15 @@ def on_servo_1(value):
         movement_thread.join()
         movement_thread = None
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[1].throttle = value
+        pca.channels[i].duty_cycle = 0
+    if value == 0:
+        pca.channels[1].duty_cycle = 0
+    else:
+        pulse = throttle_to_pulse(value)
+        pca.channels[1].duty_cycle = pulse_to_bits(pulse)
     time.sleep(1)
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
+        pca.channels[i].duty_cycle = 0
 
 @sio.on('2')
 def on_servo_2(value):
@@ -150,11 +176,15 @@ def on_servo_2(value):
         movement_thread.join()
         movement_thread = None
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[2].throttle = value
+        pca.channels[i].duty_cycle = 0
+    if value == 0:
+        pca.channels[2].duty_cycle = 0
+    else:
+        pulse = throttle_to_pulse(value)
+        pca.channels[2].duty_cycle = pulse_to_bits(pulse)
     time.sleep(1)
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
+        pca.channels[i].duty_cycle = 0
 
 @sio.on('3')
 def on_servo_3(value):
@@ -165,11 +195,15 @@ def on_servo_3(value):
         movement_thread.join()
         movement_thread = None
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
-    kit.continuous_servo[3].throttle = value
+        pca.channels[i].duty_cycle = 0
+    if value == 0:
+        pca.channels[3].duty_cycle = 0
+    else:
+        pulse = throttle_to_pulse(value)
+        pca.channels[3].duty_cycle = pulse_to_bits(pulse)
     time.sleep(1)
     for i in range(4):
-        kit.continuous_servo[i].throttle = 0
+        pca.channels[i].duty_cycle = 0
 
 if __name__ == '__main__':
   try:
