@@ -1,7 +1,7 @@
 import smbus
 import threading
 import time
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, redirect, request
 from flask_socketio import SocketIO
 
 # PCA9685 registers
@@ -22,7 +22,7 @@ ALL_LED_OFF_L = 0xFC
 ALL_LED_OFF_H = 0xFD
 
 # Initialize I2C bus
-bus = smbus.SMBus(1)  # Use 1 for Raspberry Pi 2/3/4, use 0 for Pi 1
+bus = smbus.SMBus(0)  # Use 0 for Pi Zero
 
 # Constants for servo control
 SERVO_MIN_PULSE = 150  # Min pulse width (out of 4096)
@@ -169,6 +169,19 @@ def set_lift(angle):
 # Create Flask app and SocketIO instance
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Captive portal detection routes
+@app.route('/generate_204')
+@app.route('/gen_204')
+@app.route('/mobile/status.php')
+@app.route('/hotspot-detect.html')
+@app.route('/library/test/success.html')
+@app.route('/ncsi.txt')
+@app.route('/connecttest.txt')
+@app.route('/fwlink/')
+def captive_portal_check():
+    # Redirect all captive portal detection attempts to the main page
+    return redirect('/')
 
 # Create templates directory if it doesn't exist
 import os
