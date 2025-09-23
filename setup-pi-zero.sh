@@ -28,6 +28,14 @@ interface wlan0
     nohook wpa_supplicant
 EOF
 
+# Disable NetworkManager for wlan0
+echo "Disabling NetworkManager for wlan0..."
+mkdir -p /etc/NetworkManager/conf.d/
+cat > /etc/NetworkManager/conf.d/10-unmanaged-devices.conf << EOF
+[keyfile]
+unmanaged-devices=interface-name:wlan0
+EOF
+
 # Configure dnsmasq for DNS spoofing (captive portal)
 echo "Configuring dnsmasq..."
 mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig 2>/dev/null
@@ -87,10 +95,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/terrE-pi-socket-py
+User=drak
+WorkingDirectory=/home/drak/myrepos/terrE-pi-socket-py
 ExecStartPre=/bin/sleep 30
-ExecStart=/bin/bash -c 'source /home/pi/terrE-pi-socket-py/venv/bin/activate && python /home/pi/terrE-pi-socket-py/flask-direct-server.py'
+ExecStart=/bin/bash -c 'source /home/drak/myrepos/terrE-pi-socket-py/venv/bin/activate && python /home/drak/myrepos/terrE-pi-socket-py/flask-direct-server.py'
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -183,7 +191,17 @@ else
   sed -i '/exit 0/i /usr/local/bin/start-terre.sh &' /etc/rc.local
 fi
 
-# Enable services
+# Disable and stop wpa_supplicant
+echo "Disabling wpa_supplicant..."
+systemctl stop wpa_supplicant.service
+systemctl disable wpa_supplicant.service
+systemctl mask wpa_supplicant.service
+
+# Remove any existing WiFi configurations
+echo "Removing existing WiFi configurations..."
+rm -f /etc/wpa_supplicant/wpa_supplicant.conf
+
+# Enable our services
 echo "Enabling services..."
 systemctl unmask hostapd
 systemctl enable hostapd
