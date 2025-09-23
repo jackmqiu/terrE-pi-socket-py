@@ -112,6 +112,43 @@ cat > /etc/iptables.ipv4.nat << EOF
 COMMIT
 EOF
 
+# Check if the user exists and get the username
+echo "Checking for user account..."
+CURRENT_USER=$(logname 2>/dev/null || echo "pi")
+
+# If we couldn't determine the user, check if drak exists
+if [ "$CURRENT_USER" = "pi" ] && id -u drak >/dev/null 2>&1; then
+    CURRENT_USER="drak"
+fi
+
+echo "Using user account: $CURRENT_USER"
+
+# Determine the correct path to the project
+if [ -d "/home/$CURRENT_USER/myrepos/terrE-pi-socket-py" ]; then
+    PROJECT_PATH="/home/$CURRENT_USER/myrepos/terrE-pi-socket-py"
+elif [ -d "/home/$CURRENT_USER/terrE-pi-socket-py" ]; then
+    PROJECT_PATH="/home/$CURRENT_USER/terrE-pi-socket-py"
+else
+    echo "Cannot find project directory. Please enter the full path to the terrE-pi-socket-py directory:"
+    read -r PROJECT_PATH
+fi
+
+echo "Using project path: $PROJECT_PATH"
+
+# Check if virtual environment exists
+if [ -d "$PROJECT_PATH/venv" ]; then
+    VENV_PATH="$PROJECT_PATH/venv"
+else
+    echo "Virtual environment not found at $PROJECT_PATH/venv"
+    echo "Creating a new virtual environment..."
+    python3 -m venv "$PROJECT_PATH/venv"
+    VENV_PATH="$PROJECT_PATH/venv"
+    
+    # Install required packages in the virtual environment
+    echo "Installing required Python packages in virtual environment..."
+    "$VENV_PATH/bin/pip" install flask flask-socketio smbus
+fi
+
 # Create systemd service for Flask app
 echo "Creating systemd service..."
 cat > /etc/systemd/system/terre-flask.service << EOF
@@ -122,10 +159,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=drak
-WorkingDirectory=/home/drak/myrepos/terrE-pi-socket-py
+User=$CURRENT_USER
+WorkingDirectory=$PROJECT_PATH
 ExecStartPre=/bin/sleep 30
-ExecStart=/bin/bash -c 'source /home/drak/myrepos/terrE-pi-socket-py/venv/bin/activate && python /home/drak/myrepos/terrE-pi-socket-py/flask-direct-server.py'
+ExecStart=/bin/bash -c 'source $VENV_PATH/bin/activate && python $PROJECT_PATH/flask-direct-server.py'
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -244,6 +281,15 @@ echo "Disabling wpa_supplicant..."
 systemctl stop wpa_supplicant.service
 systemctl disable wpa_supplicant.service
 systemctl mask wpa_supplicant.service
+
+# Disable rpi-connect-wayvnc service if it exists
+echo "Checking for rpi-connect-wayvnc service..."
+if systemctl list-unit-files | grep -q rpi-connect-wayvnc; then
+  echo "Disabling rpi-connect-wayvnc service..."
+  systemctl stop rpi-connect-wayvnc.service
+  systemctl disable rpi-connect-wayvnc.service
+  systemctl mask rpi-connect-wayvnc.service
+fi
 
 # Remove any existing WiFi configurations
 echo "Removing existing WiFi configurations..."
