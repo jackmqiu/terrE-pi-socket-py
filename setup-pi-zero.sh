@@ -14,42 +14,69 @@ echo "=========================================================="
 # Install required packages
 echo "Installing required packages..."
 apt update
-apt install -y hostapd dnsmasq python3-pip python3-smbus iptables
+apt install -y hostapd dnsmasq python3-pip python3-smbus iptables wireless-tools
+
+# Check for WiFi interface
+echo "Checking for WiFi interface..."
+if ! iw dev | grep -q "Interface"; then
+  echo "ERROR: No wireless interfaces found!"
+  echo "Make sure your WiFi hardware is properly connected and drivers are installed."
+  
+  # Try to load common WiFi drivers
+  echo "Attempting to load WiFi drivers..."
+  modprobe brcmfmac
+  sleep 2
+  
+  # Check again
+  if ! iw dev | grep -q "Interface"; then
+    echo "Still no wireless interfaces found. Please check your hardware."
+    echo "Continuing setup, but hostapd will likely fail without WiFi hardware."
+  fi
+fi
+
+# Get the actual WiFi interface name (might not be wlan0)
+WIFI_IFACE=$(iw dev | grep Interface | awk '{print $2}' | head -n1)
+if [ -z "$WIFI_IFACE" ]; then
+  echo "Could not determine WiFi interface name, defaulting to wlan0"
+  WIFI_IFACE="wlan0"
+else
+  echo "Found WiFi interface: $WIFI_IFACE"
+fi
 
 # Install Python packages
 echo "Installing Python packages..."
 pip3 install flask flask-socketio
 
-# Configure static IP for wlan0
-echo "Configuring static IP..."
+# Configure static IP for WiFi interface
+echo "Configuring static IP for $WIFI_IFACE..."
 cat > /etc/dhcpcd.conf << EOF
-interface wlan0
+interface $WIFI_IFACE
     static ip_address=192.168.4.1/24
     nohook wpa_supplicant
 EOF
 
-# Disable NetworkManager for wlan0
-echo "Disabling NetworkManager for wlan0..."
+# Disable NetworkManager for WiFi interface
+echo "Disabling NetworkManager for $WIFI_IFACE..."
 mkdir -p /etc/NetworkManager/conf.d/
 cat > /etc/NetworkManager/conf.d/10-unmanaged-devices.conf << EOF
 [keyfile]
-unmanaged-devices=interface-name:wlan0
+unmanaged-devices=interface-name:$WIFI_IFACE
 EOF
 
 # Configure dnsmasq for DNS spoofing (captive portal)
-echo "Configuring dnsmasq..."
+echo "Configuring dnsmasq for $WIFI_IFACE..."
 mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig 2>/dev/null
 cat > /etc/dnsmasq.conf << EOF
-interface=wlan0
+interface=$WIFI_IFACE
 dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,24h
 domain=wlan
 address=/#/192.168.4.1
 EOF
 
 # Configure hostapd
-echo "Configuring hostapd..."
+echo "Configuring hostapd for $WIFI_IFACE..."
 cat > /etc/hostapd/hostapd.conf << EOF
-interface=wlan0
+interface=$WIFI_IFACE
 driver=nl80211
 ssid=TerrE_Robot
 hw_mode=g
@@ -80,8 +107,8 @@ cat > /etc/iptables.ipv4.nat << EOF
 :INPUT ACCEPT [0:0]
 :OUTPUT ACCEPT [0:0]
 :POSTROUTING ACCEPT [0:0]
--A PREROUTING -i wlan0 -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 8080
--A PREROUTING -i wlan0 -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 8080
+-A PREROUTING -i $WIFI_IFACE -p tcp -m tcp --dport 80 -j REDIRECT --to-ports 8080
+-A PREROUTING -i $WIFI_IFACE -p tcp -m tcp --dport 443 -j REDIRECT --to-ports 8080
 COMMIT
 EOF
 
@@ -122,15 +149,32 @@ log() {
 
 log "Starting TerrE Robot startup script"
 
-# Wait for network interfaces to be up (Pi Zero needs more time)
-log "Waiting for network interfaces..."
+# Wait for system to fully boot (Pi Zero needs more time)
+log "Waiting for system to fully boot..."
 sleep 30
 
-# Check if wlan0 exists
-if ! ip link show wlan0 > /dev/null 2>&1; then
-  log "ERROR: wlan0 interface not found"
-  exit 1
+# Load WiFi drivers if needed
+log "Checking for WiFi interfaces..."
+if ! iw dev | grep -q "Interface"; then
+  log "No WiFi interfaces found, attempting to load drivers..."
+  modprobe brcmfmac
+  sleep 5
+  
+  # Check again
+  if ! iw dev | grep -q "Interface"; then
+    log "ERROR: Still no WiFi interfaces found. Check hardware connection."
+  else
+    log "WiFi interface detected after loading driver"
+  fi
 fi
+
+# Get the actual WiFi interface name
+WIFI_IFACE=\$(iw dev | grep Interface | awk '{print \$2}' | head -n1)
+if [ -z "\$WIFI_IFACE" ]; then
+  log "ERROR: Could not determine WiFi interface name"
+  WIFI_IFACE="$WIFI_IFACE"  # Use the one detected during setup
+fi
+log "Using WiFi interface: \$WIFI_IFACE"
 
 # Start hostapd and dnsmasq if not already running
 log "Starting hostapd..."
@@ -156,6 +200,10 @@ if ! ls /dev/i2c-0 > /dev/null 2>&1; then
   modprobe i2c-dev
   sleep 2
 fi
+
+# Make sure I2C permissions are correct
+log "Setting I2C permissions..."
+chmod 666 /dev/i2c-0 2>/dev/null
 
 # Start the Flask server
 log "Starting Flask server..."
