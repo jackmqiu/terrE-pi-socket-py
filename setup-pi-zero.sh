@@ -319,11 +319,17 @@ else
   sed -i '/exit 0/i /usr/local/bin/start-terre.sh &' /etc/rc.local
 fi
 
-# Disable and stop wpa_supplicant
+# Disable and stop wpa_supplicant with timeout
 echo "Disabling wpa_supplicant..."
-systemctl stop wpa_supplicant.service
-systemctl disable wpa_supplicant.service
-systemctl mask wpa_supplicant.service
+
+# Use timeout to prevent hanging
+timeout 10s systemctl stop wpa_supplicant.service || echo "Warning: Timeout while stopping wpa_supplicant"
+timeout 10s systemctl disable wpa_supplicant.service || echo "Warning: Timeout while disabling wpa_supplicant"
+timeout 10s systemctl mask wpa_supplicant.service || echo "Warning: Timeout while masking wpa_supplicant"
+
+# Force kill any remaining wpa_supplicant processes
+echo "Checking for remaining wpa_supplicant processes..."
+pkill -9 wpa_supplicant 2>/dev/null || echo "No wpa_supplicant processes found"
 
 # Disable rpi-connect-wayvnc service if it exists
 echo "Checking for rpi-connect-wayvnc service..."
