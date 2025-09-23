@@ -16,30 +16,73 @@ echo "Installing required packages..."
 apt update
 apt install -y hostapd dnsmasq python3-pip python3-smbus iptables wireless-tools
 
-# Check for WiFi interface
-echo "Checking for WiFi interface..."
-if ! iw dev | grep -q "Interface"; then
-  echo "ERROR: No wireless interfaces found!"
-  echo "Make sure your WiFi hardware is properly connected and drivers are installed."
-  
-  # Try to load common WiFi drivers
-  echo "Attempting to load WiFi drivers..."
-  modprobe brcmfmac
-  sleep 2
-  
-  # Check again
-  if ! iw dev | grep -q "Interface"; then
-    echo "Still no wireless interfaces found. Please check your hardware."
-    echo "Continuing setup, but hostapd will likely fail without WiFi hardware."
+# Comprehensive WiFi hardware check
+echo "Performing comprehensive WiFi hardware check..."
+
+# Check if the Pi has WiFi hardware
+echo "Checking for WiFi hardware..."
+if ! lsusb | grep -q -i "wireless\|wifi\|802.11\|wlan\|rtl\|ath\|bcm"; then
+  if ! lspci | grep -q -i "wireless\|wifi\|802.11\|wlan\|rtl\|ath\|bcm"; then
+    if ! dmesg | grep -q -i "wireless\|wifi\|802.11\|wlan\|rtl\|ath\|bcm"; then
+      echo "WARNING: No WiFi hardware detected! This Pi Zero may not have built-in WiFi."
+      echo "You may need a USB WiFi adapter or a Pi Zero W with built-in WiFi."
+    fi
   fi
 fi
 
-# Get the actual WiFi interface name (might not be wlan0)
-WIFI_IFACE=$(iw dev | grep Interface | awk '{print $2}' | head -n1)
-if [ -z "$WIFI_IFACE" ]; then
-  echo "Could not determine WiFi interface name, defaulting to wlan0"
-  WIFI_IFACE="wlan0"
+# Check if rfkill is blocking WiFi
+echo "Checking if WiFi is blocked by rfkill..."
+if command -v rfkill > /dev/null; then
+  if rfkill list | grep -q "Soft blocked: yes"; then
+    echo "WiFi is soft-blocked. Unblocking..."
+    rfkill unblock wifi
+    sleep 2
+  fi
+fi
+
+# Try loading various WiFi drivers
+echo "Attempting to load WiFi drivers..."
+for driver in brcmfmac brcmutil cfg80211 mac80211 rtl8192cu rtl8xxxu; do
+  echo "Loading $driver module..."
+  modprobe $driver 2>/dev/null
+done
+sleep 3
+
+# Check for WiFi interfaces
+echo "Checking for WiFi interfaces..."
+if ! iw dev | grep -q "Interface"; then
+  # Check if firmware is missing
+  if dmesg | grep -q "firmware"; then
+    echo "Possible missing firmware detected. Installing additional firmware packages..."
+    apt install -y firmware-brcm80211 firmware-realtek
+    sleep 2
+  fi
+  
+  # Last attempt - restart networking
+  echo "Restarting networking services..."
+  systemctl restart networking
+  sleep 5
+fi
+
+# Final check for WiFi interfaces
+if ! iw dev | grep -q "Interface"; then
+  echo "ERROR: No WiFi interfaces found after multiple attempts."
+  echo "This Pi Zero might not have WiFi capability or the hardware might be damaged."
+  echo "Options:"
+  echo "  1. Use a Pi Zero W with built-in WiFi"
+  echo "  2. Connect a USB WiFi adapter"
+  echo "  3. Continue without WiFi (the hotspot will not work)"
+  echo ""
+  echo "Do you want to continue anyway? (y/n)"
+  read -r response
+  if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+    echo "Setup aborted."
+    exit 1
+  fi
+  WIFI_IFACE="wlan0"  # Default even though it doesn't exist
 else
+  # Get the actual WiFi interface name
+  WIFI_IFACE=$(iw dev | grep Interface | awk '{print $2}' | head -n1)
   echo "Found WiFi interface: $WIFI_IFACE"
 fi
 
