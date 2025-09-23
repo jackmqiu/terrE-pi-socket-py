@@ -82,17 +82,21 @@ echo "Creating systemd service..."
 cat > /etc/systemd/system/terre-flask.service << EOF
 [Unit]
 Description=TerrE Flask Control Server
-After=network.target
+After=network-online.target hostapd.service dnsmasq.service
+Wants=network-online.target
 
 [Service]
+Type=simple
 User=pi
 WorkingDirectory=/home/pi/terrE-pi-socket-py
+ExecStartPre=/bin/sleep 30
 ExecStart=/usr/bin/python3 /home/pi/terrE-pi-socket-py/flask-direct-server.py
-Restart=always
+Restart=on-failure
 RestartSec=10
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=terre-flask
+Environment="PYTHONUNBUFFERED=1"
 
 [Install]
 WantedBy=multi-user.target
@@ -102,21 +106,54 @@ EOF
 echo "Creating startup script..."
 cat > /usr/local/bin/start-terre.sh << EOF
 #!/bin/bash
+
+# Log function
+log() {
+  echo "\$(date '+%Y-%m-%d %H:%M:%S') - \$1" >> /var/log/terre-startup.log
+}
+
+log "Starting TerrE Robot startup script"
+
 # Wait for network interfaces to be up (Pi Zero needs more time)
+log "Waiting for network interfaces..."
 sleep 30
 
+# Check if wlan0 exists
+if ! ip link show wlan0 > /dev/null 2>&1; then
+  log "ERROR: wlan0 interface not found"
+  exit 1
+fi
+
 # Start hostapd and dnsmasq if not already running
+log "Starting hostapd..."
 systemctl start hostapd
+sleep 5
+
+log "Starting dnsmasq..."
 systemctl start dnsmasq
+sleep 5
 
 # Apply iptables rules
+log "Applying iptables rules..."
 iptables-restore < /etc/iptables.ipv4.nat
 
 # Wait for hotspot to be established
+log "Waiting for hotspot to be established..."
 sleep 15
 
+# Initialize I2C if needed
+log "Initializing I2C..."
+if ! ls /dev/i2c-0 > /dev/null 2>&1; then
+  log "Loading I2C kernel module"
+  modprobe i2c-dev
+  sleep 2
+fi
+
 # Start the Flask server
+log "Starting Flask server..."
 systemctl start terre-flask.service
+
+log "Startup script completed"
 EOF
 
 # Make startup script executable
